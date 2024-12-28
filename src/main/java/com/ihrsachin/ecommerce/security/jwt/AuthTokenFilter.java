@@ -1,4 +1,4 @@
-package com.ihrsachin.ecommerce.jwt;
+package com.ihrsachin.ecommerce.security.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
