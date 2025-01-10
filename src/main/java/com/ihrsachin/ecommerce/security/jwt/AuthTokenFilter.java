@@ -44,13 +44,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             logger.severe("Cannot set user authentication: " + e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // Unauthorized status if exception occurs
+            response.getWriter().write("Unauthorized");
+            return;
         }
         filterChain.doFilter(request, response);
     }
 
     private String parseJwt(HttpServletRequest request) {
-        String jwt = jwtUtils.getJwtFromHeader(request);
-        logger.info("JWT: " + jwt);
-        return jwt;
+        return jwtUtils.getJwtFromCookies(request);
     }
 }

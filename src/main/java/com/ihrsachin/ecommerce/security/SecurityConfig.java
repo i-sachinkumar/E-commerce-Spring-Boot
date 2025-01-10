@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,10 +30,10 @@ public class SecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
     private final AuthTokenFilter authTokenFilter;
 
-    @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter() {
-        return authTokenFilter;
-    }
+//    @Bean
+//    public AuthTokenFilter authenticationJwtTokenFilter() {
+//        return new AuthTokenFilter();
+//    }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -57,27 +58,53 @@ public class SecurityConfig {
 //    }
 
 
+//    @Bean
+//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+//        http.csrf(AbstractHttpConfigurer::disable)
+//                .exceptionHandling(exception ->
+//                        exception.authenticationEntryPoint(unauthorizedHandler)
+//                )
+//                .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)
+//                .authorizeHttpRequests(auth ->
+//                        auth.requestMatchers("/api/auth/**").permitAll()
+//                                .requestMatchers("/api/test/**").permitAll()
+//                                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+//                                .requestMatchers("/api/public/**").permitAll()
+//                                .requestMatchers("/api/admin/**").permitAll()
+//                                .requestMatchers("/images/**").permitAll()
+//                                .anyRequest().authenticated()
+//                )
+//                .authenticationProvider(authenticationProvider())
+//                .sessionManagement(sessionManagement ->
+//                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+//                );
+//
+//        http.headers(header -> header.frameOptions(
+//                HeadersConfigurer.FrameOptionsConfig::sameOrigin
+//        ));
+//        return http.build();
+//    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(exception ->
-                        exception.authenticationEntryPoint(unauthorizedHandler)
-                )
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/auth/**").permitAll()
-                                .requestMatchers("/api/test/**").permitAll()
-                                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                                .requestMatchers("/api/public/**").permitAll()
-                                .requestMatchers("/api/admin/**").permitAll()
-                                .requestMatchers("/images/**").permitAll()
-                        .anyRequest().authenticated()
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)  // Add filter here
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()  // Exclude /api/auth/** from JWT filter
+                        .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers("/api/public/**").authenticated()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")  // Only authenticated for admin
+                        .requestMatchers("/images/**").permitAll()
+                        .anyRequest().authenticated()  // Other routes require authentication
                 )
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(sessionManagement ->
-                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)  // Stateless JWT authentication
                 );
 
+        http.headers(header -> header.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
         return http.build();
     }
 
@@ -99,25 +126,24 @@ public class SecurityConfig {
 ////        userDetailsManager.updateUser(admin);
 //
 //        return userDetailsManager;
-////        return new InMemoryUserDetailsManager(user1, admin);
+
+    /// /        return new InMemoryUserDetailsManager(user1, admin);
 //    }
-
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
 
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().
-                requestMatchers(
-                        "/configuration/ui",
-                        "/configuration/security",
-                        "/swagger-ui.html",
-                        "/webjars/**"
-                );
-    }
+//    @Bean
+//    public WebSecurityCustomizer webSecurityCustomizer() {
+//        return (web) -> web.ignoring().
+//                requestMatchers(
+//                        "/configuration/ui",
+//                        "/configuration/security",
+//                        "/swagger-ui.html",
+//                        "/webjars/**"
+//                );
+//    }
 
 }
